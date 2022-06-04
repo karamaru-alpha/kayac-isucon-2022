@@ -94,4 +94,4 @@ log:
 
 .PHONY: sql
 sql:
-	docker-compose exec $(DB_HOST) bash -c 'mysql -u$$DB_USER -p$$DB_PASS $$DB_NAME'
+	docker-compose exec mysql bash -c 'mysql -uisucon -pisucon isucon_listen80'
