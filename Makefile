@@ -7,7 +7,7 @@ DB_PORT:=3306
 DB_USER:=isucon
 DB_PASS:=isucon
 DB_NAME:=isucon_listen80
-MYSQL_LOG:=/var/log/mysql/slow-query.log
+MYSQL_LOG:=mysql/logs/slow-query.log
 NGINX_LOG:=/var/log/nginx/access.log
 GO_LOG:=/var/log/go.log
 
@@ -48,11 +48,7 @@ before:
 	git checkout .
 	git clean -df .
 	git pull origin main
-#	sudo cp /dev/null $(MYSQL_LOG)
-#	sudo cp /dev/null $(MYSQL_ERR)
-#	sudo cp /dev/null $(NGINX_LOG)
-#	sudo cp /dev/null $(NGINX_ERR)
-#	sudo cp /dev/null $(GO_LOG)
+	rm $(MYSQL_LOG)
 	docker-compose down
 	docker-compose up -d
 
