@@ -3,12 +3,12 @@ DB_SERVER:=isu1
 # APP_SERVER:=isu3
 
 APP:=isucondition
-DB_HOST:=127.0.0.1
+DB_HOST:=mysql
 DB_PORT:=3306
 DB_USER:=isucon
 DB_PASS:=isucon
-DB_NAME:=isuconｓ
-MYSQL_LOG:=/var/log/mysql/slow-query.log
+DB_NAME:=isucon_listen80
+MYSQL_LOG:=/var/mlog/mysql/slow-query.log
 NGINX_LOG:=/var/log/nginx/access.log
 GO_LOG:=/var/log/go.log
 
