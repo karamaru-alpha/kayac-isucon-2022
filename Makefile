@@ -8,7 +8,7 @@ DB_USER:=isucon
 DB_PASS:=isucon
 DB_NAME:=isucon_listen80
 MYSQL_LOG:=mysql/logs/slow-query.log
-NGINX_LOG:=nginx/logs
+NGINX_LOG:=nginx/logs/access.log
 GO_LOG:=/var/log/go.log
 
 .PHONY: setup
