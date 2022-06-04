@@ -48,7 +48,7 @@ before:
 	git checkout .
 	git clean -df .
 	git pull origin main
-	rm $(MYSQL_LOG) 2> /dev/null
+	#rm $(MYSQL_LOG) 2> /dev/null
 	docker-compose down
 	docker-compose up -d
 
