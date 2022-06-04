@@ -1,3 +1,6 @@
 node
 public
+mysql/logs
+nginx/logs
 .idea
+
