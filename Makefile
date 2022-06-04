@@ -48,13 +48,13 @@ before:
 	git checkout .
 	git clean -df .
 	git pull origin main
-	sudo cp /dev/null $(MYSQL_LOG)
-	sudo cp /dev/null $(MYSQL_ERR)
-	sudo cp /dev/null $(NGINX_LOG)
-	sudo cp /dev/null $(NGINX_ERR)
-	sudo cp /dev/null $(GO_LOG)
+#	sudo cp /dev/null $(MYSQL_LOG)
+#	sudo cp /dev/null $(MYSQL_ERR)
+#	sudo cp /dev/null $(NGINX_LOG)
+#	sudo cp /dev/null $(NGINX_ERR)
+#	sudo cp /dev/null $(GO_LOG)
 	docker-compose down
-	docker-compose down up -d
+	docker-compose up -d
 
 .PHONY: before-db
 before-db:
@@ -85,3 +85,7 @@ log:
 .PHONY: sql
 sql:
 	docker-compose exec $(DB_HOST) bash -c 'mysql -uisucon -pisucon isucon_listen80'
+
+.PHONY: bench
+bench:
+	(cd ../bench && ./bench)
