@@ -1,9 +1,3 @@
-export
-
-MAIN_SERVER:=isu1
-DB_SERVER:=isu1
-# APP_SERVER:=isu3
-
 APP_PATH=/home/isucon/webapp
 GO_PATH=/home/isucon/webapp/golang
 
@@ -96,4 +90,5 @@ log:
 
 .PHONY: sql
 sql:
-	@env | docker-compose exec $(DB_HOST) bash -c 'mysql -u$$DB_USER -p$$DB_PASS $$DB_NAME'
+	docker-compose exec $(DB_HOST) bash -c 'mysql -uisucon -pisucon isucon_listen80
+'
