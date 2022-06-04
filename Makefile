@@ -90,5 +90,4 @@ log:
 
 .PHONY: sql
 sql:
-	docker-compose exec $(DB_HOST) bash -c 'mysql -uisucon -pisucon isucon_listen80
-'
+	docker-compose exec $(DB_HOST) bash -c 'mysql -uisucon -pisucon isucon_listen80'
