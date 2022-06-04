@@ -48,6 +48,8 @@ before:
 	git checkout .
 	git clean -df .
 	git pull origin main
+	sudo rm $(NGINX_LOG) 2> /dev/null
+	sudo rm $(MYSQL_LOG) 2> /dev/null
 	docker-compose down
 	docker-compose up -d
 
