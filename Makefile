@@ -1,3 +1,5 @@
+export
+
 MAIN_SERVER:=isu1
 DB_SERVER:=isu1
 # APP_SERVER:=isu3
@@ -94,4 +96,4 @@ log:
 
 .PHONY: sql
 sql:
-	docker-compose exec mysql bash -c 'mysql -uisucon -pisucon isucon_listen80'
+	docker-compose exec $(DB_HOST) bash -c 'mysql -u$$DB_USER -p$$DB_PASS $$DB_NAME'
