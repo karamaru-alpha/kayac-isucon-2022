@@ -48,19 +48,13 @@ before:
 	git checkout .
 	git clean -df .
 	git pull origin main
-	sudo cp my.cnf /etc/mysql/my.cnf
-	sudo cp nginx.conf /etc/nginx/nginx.conf
-	sudo cp $(APP).conf /etc/nginx/sites-enabled/$(APP).conf
-	(cd go && $(GO_PATH) mod tidy)
-	(cd go && $(GO_PATH) build -o $(APP))
 	sudo cp /dev/null $(MYSQL_LOG)
 	sudo cp /dev/null $(MYSQL_ERR)
 	sudo cp /dev/null $(NGINX_LOG)
 	sudo cp /dev/null $(NGINX_ERR)
 	sudo cp /dev/null $(GO_LOG)
-	sudo systemctl restart nginx
-	sudo systemctl restart mysql
-	sudo systemctl restart $(APP).go.service
+	docker-compose down
+	docker-compose down up -d
 
 .PHONY: before-db
 before-db:
