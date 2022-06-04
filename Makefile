@@ -51,7 +51,7 @@ before:
 	sudo rm $(NGINX_LOG) 2> /dev/null
 	sudo rm $(MYSQL_LOG) 2> /dev/null
 	docker-compose down
-	docker-compose up -d
+	docker-compose up -d --build
 
 .PHONY: before-db
 before-db:
