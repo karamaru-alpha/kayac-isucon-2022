@@ -2,7 +2,10 @@ MAIN_SERVER:=isu1
 DB_SERVER:=isu1
 # APP_SERVER:=isu3
 
-APP:=isucondition
+APP_PATH=/home/isucon/webapp
+GO_PATH=/home/isucon/webapp/golangl
+
+APP:=app
 DB_HOST:=mysql
 DB_PORT:=3306
 DB_USER:=isucon
@@ -95,4 +98,8 @@ fetch:
 
 .PHONY: sql
 sql:
-	mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
+	docker-compose exec $DB_HOST bash -c 'mysql -u$$DB_USER -p$$DB_PASS $$DB_NAME'
+
+.PHONY: push
+push:
+	git push origin main && ssh $MAIN_SERVER "git pull origin main"
