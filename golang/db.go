@@ -34,6 +34,7 @@ type PlaylistRow struct {
 	UserAccount string    `db:"user_account"`
 	IsPublic    bool      `db:"is_public"`
 	FavCount    int       `db:"fav_count"`
+	SongCount   int       `db:"song_count"`
 	CreatedAt   time.Time `db:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at"`
 }
