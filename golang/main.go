@@ -602,11 +602,6 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 
 		songCount := playlist.SongCount
 		favoriteCount := playlist.FavCount
-		// TODO: いらなそう
-		isFavorited, err := isFavoritedBy(ctx, db, userAccount, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error isFavoritedBy: %w", err)
-		}
 		playlists = append(playlists, Playlist{
 			ULID:            playlist.ULID,
 			Name:            playlist.Name,
@@ -614,7 +609,7 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 			UserAccount:     user.Account,
 			SongCount:       songCount,
 			FavoriteCount:   favoriteCount,
-			IsFavorited:     isFavorited,
+			IsFavorited:     true,
 			IsPublic:        playlist.IsPublic,
 			CreatedAt:       playlist.CreatedAt,
 			UpdatedAt:       playlist.UpdatedAt,
