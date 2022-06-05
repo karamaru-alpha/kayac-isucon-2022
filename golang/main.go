@@ -1721,6 +1721,8 @@ func initializeHandler(c echo.Context) error {
 		c.Logger().Errorf("error: initialize %s", err)
 		return errorResponse(c, 500, "internal server error")
 	}
+	songMapByID = make(map[int]*SongRow, 0)
+	songMapByULID = make(map[string]*SongRow, 0)
 	for _, song := range songs {
 		songMapByID[song.ID] = song
 		songMapByULID[song.ULID] = song
@@ -1735,6 +1737,7 @@ func initializeHandler(c echo.Context) error {
 		c.Logger().Errorf("error: initialize %s", err)
 		return errorResponse(c, 500, "internal server error")
 	}
+	artistMapByID = make(map[int]*ArtistRow, 0)
 	for _, artist := range artists {
 		artistMapByID[artist.ID] = artist
 	}
