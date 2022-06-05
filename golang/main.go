@@ -802,6 +802,13 @@ func insertPlaylistFavorite(ctx context.Context, db connOrTx, playlistID int, fa
 			playlistID, favoriteUserAccount, createdAt, err,
 		)
 	}
+	if _, err := db.ExecContext(
+		ctx,
+		"UPDATE playlist SET fav_count=fav_count+1 WHERE id = ?",
+		playlistID,
+	); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -1272,8 +1279,8 @@ func apiPlaylistAddHandler(c echo.Context) error {
 
 	if _, err := conn.ExecContext(
 		ctx,
-		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?)",
-		playlistULID.String(), name, userAccount, false, createTimestamp, createTimestamp, // 作成時は非公開
+		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `like_count`,`created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		playlistULID.String(), name, userAccount, false, 0, createTimestamp, createTimestamp, // 作成時は非公開
 	); err != nil {
 		c.Logger().Errorf(
 			"error Insert playlist by ulid=%s, name=%s, user_account=%s, is_public=%t, created_at=%s, updated_at=%s: %s",
@@ -1624,6 +1631,14 @@ func apiPlaylistFavoriteHandler(c echo.Context) error {
 				"error Delete playlist_favorite by playlist_id=%d, favorite_user_account=%s: %s",
 				playlist.ID, userAccount, err,
 			)
+			return errorResponse(c, 500, "internal server error")
+		}
+		if _, err := db.ExecContext(
+			ctx,
+			"UPDATE playlist SET fav_count=fav_count-1 WHERE id = ?",
+			playlist.ID,
+		); err != nil {
+			c.Logger().Error("error decrement playlist fav_count")
 			return errorResponse(c, 500, "internal server error")
 		}
 	}
