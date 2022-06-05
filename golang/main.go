@@ -517,12 +517,23 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 }
 
 func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, userAccount string) ([]Playlist, error) {
-	playlists := make([]PlaylistRow, 0, 100)
+	playlists := make([]*struct {
+		ULID      string    `db:"ulid"`
+		Name      string    `db:"name"`
+		IsPublic  bool      `db:"is_public"`
+		FavCount  int       `db:"fav_count"`
+		SongCount int       `db:"song_count"`
+		CreatedAt time.Time `db:"created_at"`
+		UpdatedAt time.Time `db:"updated_at"`
+
+		IsFavorited bool `db:"is_favorited"`
+	}, 0, 100)
+
 	if err := db.SelectContext(
 		ctx,
 		&playlists,
-		"SELECT * FROM playlist where user_account = ? ORDER BY created_at DESC LIMIT 100",
-		userAccount,
+		"SELECT a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.id IS NOT NULL AS is_favorited FROM playlist a LEFT JOIN playlist_favorite b ON a.id = b.playlist_id AND b.favorite_user_account = ? WHERE a.user_account = ? ORDER BY a.created_at DESC LIMIT 100",
+		userAccount, userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
 			"error Select playlist by user_account=%s: %w",
@@ -545,10 +556,7 @@ func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, userAccount s
 	for _, row := range playlists {
 		songCount := row.SongCount
 		favoriteCount := row.FavCount
-		isFavorited, err := isFavoritedBy(ctx, db, userAccount, row.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error isFavoritedBy: %w", err)
-		}
+		isFavorited := row.IsFavorited
 		results = append(results, Playlist{
 			ULID:            row.ULID,
 			Name:            row.Name,
