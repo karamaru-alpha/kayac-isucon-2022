@@ -452,59 +452,45 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 }
 
 func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
-	playlists := make([]*PlaylistRow, 0, 150)
+	playlists := make([]*struct {
+		ULID      string    `db:"ulid"`
+		Name      string    `db:"name"`
+		IsPublic  bool      `db:"is_public"`
+		FavCount  int       `db:"fav_count"`
+		SongCount int       `db:"song_count"`
+		CreatedAt time.Time `db:"created_at"`
+		UpdatedAt time.Time `db:"updated_at"`
+
+		UserAccount     string `db:"account"`
+		UserDisplayName string `db:"display_name"`
+
+		IsFavorited bool `db:"is_favorited"`
+	}, 0, 100)
 	if err := db.SelectContext(
 		ctx,
 		&playlists,
-		`SELECT * FROM playlist ORDER BY fav_count DESC LIMIT 150`,
+		`SELECT a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.account, b.display_name, c.id IS NOT NULL AS is_favorited FROM playlist a JOIN user b ON a.user_account = b.account LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = 1 AND b.is_ban = 0 ORDER BY a.fav_count DESC LIMIT 100`,
+		userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
 			"error Select playlist_favorite: %w",
 			err,
 		)
 	}
-
 	if len(playlists) == 0 {
 		return nil, nil
 	}
 
 	result := make([]Playlist, 0, len(playlists))
 	for _, playlist := range playlists {
-		// 非公開プレイリストは除外
-		if playlist == nil || !playlist.IsPublic {
-			continue
-		}
-
-		user, err := getUserByAccount(ctx, db, playlist.UserAccount)
-		if err != nil {
-			return nil, fmt.Errorf("error getUserByAccount: %w", err)
-		}
-		// banされていたら除外
-		if user == nil || user.IsBan {
-			continue
-		}
-
-		songCount := playlist.SongCount
-		favoriteCount := playlist.FavCount
-
-		var isFavorited bool
-		if userAccount != anonUserAccount {
-			// 認証済みの場合はfavを取得
-			var err error
-			isFavorited, err = isFavoritedBy(ctx, db, userAccount, playlist.ID)
-			if err != nil {
-				return nil, fmt.Errorf("error isFavoritedBy: %w", err)
-			}
-		}
-
 		result = append(result, Playlist{
 			ULID:            playlist.ULID,
 			Name:            playlist.Name,
-			UserDisplayName: user.DisplayName,
-			UserAccount:     user.Account,
-			SongCount:       songCount,
-			FavoriteCount:   favoriteCount,
-			IsFavorited:     isFavorited,
+			UserDisplayName: playlist.UserDisplayName,
+			UserAccount:     playlist.UserAccount,
+			SongCount:       playlist.SongCount,
+			FavoriteCount:   playlist.FavCount,
+			IsFavorited:     playlist.IsFavorited,
 			IsPublic:        playlist.IsPublic,
 			CreatedAt:       playlist.CreatedAt,
 			UpdatedAt:       playlist.UpdatedAt,
@@ -657,7 +643,7 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 	if err := db.SelectContext(
 		ctx,
 		&resPlaylistSongs,
-		"SELECT b.ulid, b.title, b.album, b.track_number, b.is_public ,c.name FROM playlist_song a LEFT JOIN song b ON a.song_id = b.id LEFT JOIN artist c ON b.artist_id = c.id WHERE a.playlist_id = ?",
+		"SELECT b.ulid, b.title, b.album, b.track_number, b.is_public, c.name FROM playlist_song a LEFT JOIN song b ON a.song_id = b.id LEFT JOIN artist c ON b.artist_id = c.id WHERE a.playlist_id = ?",
 		playlist.ID,
 	); err != nil {
 		return nil, fmt.Errorf("error Select playlist_song join playlist_id=%d: %w", playlist.ID, err)
