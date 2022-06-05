@@ -1365,7 +1365,7 @@ func apiPlaylistUpdateHandler(c echo.Context) error {
 	if _, err := tx.ExecContext(
 		ctx,
 		"UPDATE playlist SET name = ?, is_public = ?, `updated_at` = ?, `song_count` = ? WHERE `ulid` = ?",
-		name, isPublic, updatedTimestamp, playlist.ULID, len(songULIDs),
+		name, isPublic, updatedTimestamp, len(songULIDs), playlist.ULID,
 	); err != nil {
 		tx.Rollback()
 		c.Logger().Errorf(
