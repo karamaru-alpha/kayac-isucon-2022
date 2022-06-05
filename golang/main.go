@@ -484,10 +484,7 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 		if err != nil {
 			return nil, fmt.Errorf("error getSongsCountByPlaylistID: %w", err)
 		}
-		favoriteCount, err := getFavoritesCountByPlaylistID(ctx, db, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getFavoritesCountByPlaylistID: %w", err)
-		}
+		favoriteCount := playlist.FavCount
 
 		var isFavorited bool
 		if userAccount != anonUserAccount {
