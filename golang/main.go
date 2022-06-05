@@ -138,7 +138,10 @@ func main() {
 		e.Logger.Fatalf("failed to connect db: %v", err)
 		return
 	}
-	db.SetMaxOpenConns(10)
+	MAX_CONN := 20
+	db.SetMaxOpenConns(MAX_CONN)
+	db.SetMaxIdleConns(MAX_CONN * 2)
+	db.SetConnMaxIdleTime(time.Minute * 2)
 	defer db.Close()
 
 	sessionStore, err = mysqlstore.NewMySQLStoreFromConnection(db.DB, "sessions_golang", "/", 86400, []byte("powawa"))
