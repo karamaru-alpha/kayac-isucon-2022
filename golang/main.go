@@ -448,14 +448,11 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 }
 
 func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
-	var popular []struct {
-		PlaylistID    int `db:"playlist_id"`
-		FavoriteCount int `db:"favorite_count"`
-	}
+	playlists := make([]*PlaylistRow, 0, 150)
 	if err := db.SelectContext(
 		ctx,
-		&popular,
-		`SELECT playlist_id, count(*) AS favorite_count FROM playlist_favorite GROUP BY playlist_id ORDER BY count(*) DESC LIMIT 150`,
+		&playlists,
+		`SELECT * FROM playlist ORDER BY fav_count DESC LIMIT 150`,
 	); err != nil {
 		return nil, fmt.Errorf(
 			"error Select playlist_favorite: %w",
@@ -463,15 +460,12 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 		)
 	}
 
-	if len(popular) == 0 {
+	if len(playlists) == 0 {
 		return nil, nil
 	}
-	playlists := make([]Playlist, 0, len(popular))
-	for _, p := range popular {
-		playlist, err := getPlaylistByID(ctx, db, p.PlaylistID)
-		if err != nil {
-			return nil, fmt.Errorf("error getPlaylistByID: %w", err)
-		}
+
+	result := make([]Playlist, 0, len(playlists))
+	for _, playlist := range playlists {
 		// 非公開プレイリストは除外
 		if playlist == nil || !playlist.IsPublic {
 			continue
@@ -505,7 +499,7 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 			}
 		}
 
-		playlists = append(playlists, Playlist{
+		result = append(result, Playlist{
 			ULID:            playlist.ULID,
 			Name:            playlist.Name,
 			UserDisplayName: user.DisplayName,
@@ -517,11 +511,11 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 			CreatedAt:       playlist.CreatedAt,
 			UpdatedAt:       playlist.UpdatedAt,
 		})
-		if len(playlists) >= 100 {
+		if len(result) >= 100 {
 			break
 		}
 	}
-	return playlists, nil
+	return result, nil
 }
 
 func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
