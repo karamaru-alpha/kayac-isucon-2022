@@ -1738,7 +1738,7 @@ func initializeHandler(c echo.Context) error {
 	artists := make([]*ArtistRow, 0)
 	if err := conn.SelectContext(
 		ctx,
-		&songs,
+		&artists,
 		"SELECT * FROM artist",
 	); err != nil {
 		c.Logger().Errorf("error: initialize %s", err)
