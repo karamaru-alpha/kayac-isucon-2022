@@ -399,12 +399,15 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 		UserAccount     string `db:"account"`
 		UserDisplayName string `db:"display_name"`
 		UserIsBan       bool   `db:"is_ban"`
+
+		// fav
+		IsFavorited bool `db:"is_favorited"`
 	}, 0, 125)
 	if err := db.SelectContext(
 		ctx,
 		&allPlaylists,
-		"SELECT a.id, a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.account, b.display_name, b.is_ban FROM playlist a LEFT JOIN user b ON a.user_account = b.account WHERE a.is_public = ? ORDER BY a.created_at DESC LIMIT 125",
-		true,
+		"SELECT a.id, a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.account, b.display_name, b.is_ban, c.id IS NOT NULL AS is_favorited FROM playlist a LEFT JOIN user b ON a.user_account = b.account LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = ? ORDER BY a.created_at DESC LIMIT 125",
+		userAccount, true,
 	); err != nil {
 		return nil, fmt.Errorf(
 			"error Select playlist by is_public=true: %w",
@@ -421,26 +424,14 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 			continue
 		}
 
-		songCount := playlist.SongCount
-		favoriteCount := playlist.FavCount
-
-		var isFavorited bool
-		if userAccount != anonUserAccount {
-			var err error
-			isFavorited, err = isFavoritedBy(ctx, db, userAccount, playlist.ID)
-			if err != nil {
-				return nil, fmt.Errorf("error isFavoritedBy: %w", err)
-			}
-		}
-
 		playlists = append(playlists, Playlist{
 			ULID:            playlist.ULID,
 			Name:            playlist.Name,
 			UserDisplayName: playlist.UserDisplayName,
 			UserAccount:     playlist.UserAccount,
-			SongCount:       songCount,
-			FavoriteCount:   favoriteCount,
-			IsFavorited:     isFavorited,
+			SongCount:       playlist.SongCount,
+			FavoriteCount:   playlist.FavCount,
+			IsFavorited:     playlist.IsFavorited,
 			IsPublic:        playlist.IsPublic,
 			CreatedAt:       playlist.CreatedAt,
 			UpdatedAt:       playlist.UpdatedAt,
