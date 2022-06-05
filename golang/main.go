@@ -38,6 +38,9 @@ var (
 	entropy = ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
 )
 
+var songMapByID = make(map[int]*SongRow, 0)
+var songMapByULID = make(map[string]*SongRow, 0)
+
 func getEnv(key string, defaultValue string) string {
 	val := os.Getenv(key)
 	if val != "" {
@@ -325,14 +328,11 @@ type connOrTx interface {
 }
 
 func getSongByULID(ctx context.Context, db connOrTx, songULID string) (*SongRow, error) {
-	var row SongRow
-	if err := db.GetContext(ctx, &row, "SELECT * FROM song WHERE `ulid` = ?", songULID); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error Get song by ulid=%s: %w", songULID, err)
+	song, ok := songMapByULID[songULID]
+	if !ok {
+		return nil, nil
 	}
-	return &row, nil
+	return song, nil
 }
 
 func isFavoritedBy(ctx context.Context, db connOrTx, userAccount string, playlistID int) (bool, error) {
@@ -1723,6 +1723,20 @@ func initializeHandler(c echo.Context) error {
 	); err != nil {
 		c.Logger().Errorf("error: initialize %s", err)
 		return errorResponse(c, 500, "internal server error")
+	}
+
+	songs := make([]*SongRow, 0)
+	if err := conn.SelectContext(
+		ctx,
+		&songs,
+		"SELECT * FROM song",
+	); err != nil {
+		c.Logger().Errorf("error: initialize %s", err)
+		return errorResponse(c, 500, "internal server error")
+	}
+	for _, song := range songs {
+		songMapByID[song.ID] = song
+		songMapByULID[song.ULID] = song
 	}
 
 	body := BasicResponse{
