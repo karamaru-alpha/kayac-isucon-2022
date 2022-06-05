@@ -77,7 +77,7 @@ func cacheControllPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 
 func main() {
 	e := echo.New()
-	e.Debug = true
+	//e.Debug = true
 	e.Logger.SetLevel(log.ERROR)
 
 	e.Use(middleware.Logger())
