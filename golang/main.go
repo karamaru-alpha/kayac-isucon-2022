@@ -567,11 +567,21 @@ func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, userAccount s
 }
 
 func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount string) ([]Playlist, error) {
-	var playlistFavorites []PlaylistFavoriteRow
+	playlistFavorites := make([]*struct {
+		ULID      string    `db:"ulid"`
+		Name      string    `db:"name"`
+		FavCount  int       `db:"fav_count"`
+		SongCount int       `db:"song_count"`
+		CreatedAt time.Time `db:"created_at"`
+		UpdatedAt time.Time `db:"updated_at"`
+
+		UserAccount     string `db:"account"`
+		UserDisplayName string `db:"display_name"`
+	}, 0, 100)
 	if err := db.SelectContext(
 		ctx,
 		&playlistFavorites,
-		"SELECT * FROM playlist_favorite where favorite_user_account = ? ORDER BY id DESC",
+		"SELECT b.ulid, b.name, b.fav_count, b.song_count, b.created_at, b.updated_at, c.account, c.display_name FROM playlist_favorite a LEFT JOIN playlist b ON a.playlist_id = b.id LEFT JOIN user c ON b.user_account = c.account WHERE a.favorite_user_account = ? AND b.is_public = 1 AND c.is_ban = 0 ORDER BY a.id DESC LIMIT 100",
 		userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
@@ -582,41 +592,20 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 
 	playlists := make([]Playlist, 0, 100)
 	for _, fav := range playlistFavorites {
-		playlist, err := getPlaylistByID(ctx, db, fav.PlaylistID)
-		if err != nil {
-			return nil, fmt.Errorf("error getPlaylistByID: %w", err)
-		}
-		// 非公開は除外する
-		if playlist == nil || !playlist.IsPublic {
-			continue
-		}
-		user, err := getUserByAccount(ctx, db, playlist.UserAccount)
-		if err != nil {
-			return nil, fmt.Errorf("error getUserByAccount: %w", err)
-		}
-
-		// 作成したユーザーがbanされていたら除外する
-		if user == nil || user.IsBan {
-			return nil, nil
-		}
-
-		songCount := playlist.SongCount
-		favoriteCount := playlist.FavCount
+		songCount := fav.SongCount
+		favoriteCount := fav.FavCount
 		playlists = append(playlists, Playlist{
-			ULID:            playlist.ULID,
-			Name:            playlist.Name,
-			UserDisplayName: user.DisplayName,
-			UserAccount:     user.Account,
+			ULID:            fav.ULID,
+			Name:            fav.Name,
+			UserDisplayName: fav.UserDisplayName,
+			UserAccount:     fav.UserAccount,
 			SongCount:       songCount,
 			FavoriteCount:   favoriteCount,
 			IsFavorited:     true,
-			IsPublic:        playlist.IsPublic,
-			CreatedAt:       playlist.CreatedAt,
-			UpdatedAt:       playlist.UpdatedAt,
+			IsPublic:        true,
+			CreatedAt:       fav.CreatedAt,
+			UpdatedAt:       fav.UpdatedAt,
 		})
-		if len(playlists) >= 100 {
-			break
-		}
 	}
 
 	return playlists, nil
