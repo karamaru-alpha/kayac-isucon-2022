@@ -410,14 +410,8 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 			continue
 		}
 
-		songCount, err := getSongsCountByPlaylistID(ctx, db, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getSongsCountByPlaylistID: %w", err)
-		}
-		favoriteCount, err := getFavoritesCountByPlaylistID(ctx, db, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getFavoritesCountByPlaylistID: %w", err)
-		}
+		songCount := playlist.SongCount
+		favoriteCount := playlist.FavCount
 
 		var isFavorited bool
 		if userAccount != anonUserAccount {
@@ -546,10 +540,7 @@ func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, db connOrTx, 
 		if err != nil {
 			return nil, fmt.Errorf("error getSongsCountByPlaylistID: %w", err)
 		}
-		favoriteCount, err := getFavoritesCountByPlaylistID(ctx, db, row.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getFavoritesCountByPlaylistID: err=%w", err)
-		}
+		favoriteCount := row.FavCount
 		isFavorited, err := isFavoritedBy(ctx, db, userAccount, row.ID)
 		if err != nil {
 			return nil, fmt.Errorf("error isFavoritedBy: %w", err)
@@ -605,14 +596,8 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, db connOrTx
 			return nil, nil
 		}
 
-		songCount, err := getSongsCountByPlaylistID(ctx, db, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getSongsCountByPlaylistID: %w", err)
-		}
-		favoriteCount, err := getFavoritesCountByPlaylistID(ctx, db, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getFavoritesCountByPlaylistID: err=%w", err)
-		}
+		songCount := playlist.SongCount
+		favoriteCount := playlist.FavCount
 		isFavorited, err := isFavoritedBy(ctx, db, userAccount, playlist.ID)
 		if err != nil {
 			return nil, fmt.Errorf("error isFavoritedBy: %w", err)
@@ -654,10 +639,7 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 		return nil, nil
 	}
 
-	favoriteCount, err := getFavoritesCountByPlaylistID(ctx, db, playlist.ID)
-	if err != nil {
-		return nil, fmt.Errorf("error getFavoriteCountByPlaylistID: %w", err)
-	}
+	favoriteCount := playlist.FavCount
 	var isFavorited bool
 	if viewerUserAccount != nil {
 		var err error
