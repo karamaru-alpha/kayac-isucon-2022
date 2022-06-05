@@ -448,14 +448,11 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 }
 
 func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
-	var popular []struct {
-		PlaylistID    int `db:"playlist_id"`
-		FavoriteCount int `db:"favorite_count"`
-	}
+	playlists := make([]*PlaylistRow, 0, 150)
 	if err := db.SelectContext(
 		ctx,
-		&popular,
-		`SELECT playlist_id, count(*) AS favorite_count FROM playlist_favorite GROUP BY playlist_id ORDER BY count(*) DESC LIMIT 150`,
+		&playlists,
+		`SELECT * FROM playlist ORDER BY fav_count DESC LIMIT 150`,
 	); err != nil {
 		return nil, fmt.Errorf(
 			"error Select playlist_favorite: %w",
@@ -463,15 +460,12 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 		)
 	}
 
-	if len(popular) == 0 {
+	if len(playlists) == 0 {
 		return nil, nil
 	}
-	playlists := make([]Playlist, 0, len(popular))
-	for _, p := range popular {
-		playlist, err := getPlaylistByID(ctx, db, p.PlaylistID)
-		if err != nil {
-			return nil, fmt.Errorf("error getPlaylistByID: %w", err)
-		}
+
+	result := make([]Playlist, 0, len(playlists))
+	for _, playlist := range playlists {
 		// 非公開プレイリストは除外
 		if playlist == nil || !playlist.IsPublic {
 			continue
@@ -490,10 +484,7 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 		if err != nil {
 			return nil, fmt.Errorf("error getSongsCountByPlaylistID: %w", err)
 		}
-		favoriteCount, err := getFavoritesCountByPlaylistID(ctx, db, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getFavoritesCountByPlaylistID: %w", err)
-		}
+		favoriteCount := playlist.FavCount
 
 		var isFavorited bool
 		if userAccount != anonUserAccount {
@@ -505,7 +496,7 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 			}
 		}
 
-		playlists = append(playlists, Playlist{
+		result = append(result, Playlist{
 			ULID:            playlist.ULID,
 			Name:            playlist.Name,
 			UserDisplayName: user.DisplayName,
@@ -517,11 +508,11 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 			CreatedAt:       playlist.CreatedAt,
 			UpdatedAt:       playlist.UpdatedAt,
 		})
-		if len(playlists) >= 100 {
+		if len(result) >= 100 {
 			break
 		}
 	}
-	return playlists, nil
+	return result, nil
 }
 
 func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
@@ -801,6 +792,13 @@ func insertPlaylistFavorite(ctx context.Context, db connOrTx, playlistID int, fa
 			"error Insert playlist_favorite by playlist_id=%d, favorite_user_account=%s, created_at=%s: %w",
 			playlistID, favoriteUserAccount, createdAt, err,
 		)
+	}
+	if _, err := db.ExecContext(
+		ctx,
+		"UPDATE playlist SET fav_count=fav_count+1 WHERE id = ?",
+		playlistID,
+	); err != nil {
+		return err
 	}
 	return nil
 }
@@ -1272,8 +1270,8 @@ func apiPlaylistAddHandler(c echo.Context) error {
 
 	if _, err := conn.ExecContext(
 		ctx,
-		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?)",
-		playlistULID.String(), name, userAccount, false, createTimestamp, createTimestamp, // 作成時は非公開
+		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `fav_count`,`created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		playlistULID.String(), name, userAccount, false, 0, createTimestamp, createTimestamp, // 作成時は非公開
 	); err != nil {
 		c.Logger().Errorf(
 			"error Insert playlist by ulid=%s, name=%s, user_account=%s, is_public=%t, created_at=%s, updated_at=%s: %s",
@@ -1624,6 +1622,14 @@ func apiPlaylistFavoriteHandler(c echo.Context) error {
 				"error Delete playlist_favorite by playlist_id=%d, favorite_user_account=%s: %s",
 				playlist.ID, userAccount, err,
 			)
+			return errorResponse(c, 500, "internal server error")
+		}
+		if _, err := db.ExecContext(
+			ctx,
+			"UPDATE playlist SET fav_count=fav_count-1 WHERE id = ?",
+			playlist.ID,
+		); err != nil {
+			c.Logger().Error("error decrement playlist fav_count")
 			return errorResponse(c, 500, "internal server error")
 		}
 	}
