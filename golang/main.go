@@ -1270,7 +1270,7 @@ func apiPlaylistAddHandler(c echo.Context) error {
 
 	if _, err := conn.ExecContext(
 		ctx,
-		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `like_count`,`created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `fav_count`,`created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		playlistULID.String(), name, userAccount, false, 0, createTimestamp, createTimestamp, // 作成時は非公開
 	); err != nil {
 		c.Logger().Errorf(
