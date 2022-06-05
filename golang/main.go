@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -1351,6 +1352,7 @@ func apiPlaylistUpdateHandler(c echo.Context) error {
 		return errorResponse(c, 500, "internal server error")
 	}
 
+	playlistSongs := make([]*PlaylistSongRow, 0, len(songULIDs))
 	for i, songULID := range songULIDs {
 		song, err := getSongByULID(ctx, tx, songULID)
 		if err != nil {
@@ -1362,12 +1364,33 @@ func apiPlaylistUpdateHandler(c echo.Context) error {
 			tx.Rollback()
 			return errorResponse(c, 400, fmt.Sprintf("song not found. ulid: %s", songULID))
 		}
+		playlistSongs = append(playlistSongs, &PlaylistSongRow{
+			PlaylistID: playlist.ID,
+			SortOrder:  i + 1,
+			SongID:     song.ID,
+		})
+		//if err := insertPlaylistSong(ctx, tx, playlist.ID, i+1, song.ID); err != nil {
+		//	tx.Rollback()
+		//	c.Logger().Errorf("error insertPlaylistSong: %s", err)
+		//	return errorResponse(c, 500, "internal server error")
+		//}
+	}
 
-		if err := insertPlaylistSong(ctx, tx, playlist.ID, i+1, song.ID); err != nil {
-			tx.Rollback()
-			c.Logger().Errorf("error insertPlaylistSong: %s", err)
-			return errorResponse(c, 500, "internal server error")
+	args := make([]interface{}, 0, len(playlistSongs)*3)
+	placeHolders := &strings.Builder{}
+	for i, v := range playlistSongs {
+		args = append(args, v.PlaylistID, v.SortOrder, v.SongID)
+		if i == 0 {
+			placeHolders.WriteString(" (?, ?, ?)")
+		} else {
+			placeHolders.WriteString(",(?, ?, ?)")
 		}
+	}
+	_, err = db.Exec("INSERT INTO playlist_song (`playlist_id`, `sort_order`, `song_id`) VALUES"+placeHolders.String(), args...)
+	if err != nil {
+		tx.Rollback()
+		c.Logger().Errorf("error insertPlaylistSong: %s", err)
+		return errorResponse(c, 500, "internal server error")
 	}
 
 	if err := tx.Commit(); err != nil {
