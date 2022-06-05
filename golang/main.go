@@ -632,7 +632,7 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 	if err := db.SelectContext(
 		ctx,
 		&resPlaylistSongs,
-		"SELECT song_id, artist_id FROM playlist_song WHERE playlist_id = ?",
+		"SELECT song_id FROM playlist_song WHERE playlist_id = ?",
 		playlist.ID,
 	); err != nil {
 		return nil, fmt.Errorf("error Select playlist_song join playlist_id=%d: %w", playlist.ID, err)
