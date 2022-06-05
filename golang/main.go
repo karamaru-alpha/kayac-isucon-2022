@@ -484,10 +484,7 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 			continue
 		}
 
-		songCount, err := getSongsCountByPlaylistID(ctx, db, playlist.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getSongsCountByPlaylistID: %w", err)
-		}
+		songCount := playlist.SongCount
 		favoriteCount := playlist.FavCount
 
 		var isFavorited bool
@@ -546,10 +543,7 @@ func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, userAccount s
 
 	results := make([]Playlist, 0, len(playlists))
 	for _, row := range playlists {
-		songCount, err := getSongsCountByPlaylistID(ctx, db, row.ID)
-		if err != nil {
-			return nil, fmt.Errorf("error getSongsCountByPlaylistID: %w", err)
-		}
+		songCount := row.SongCount
 		favoriteCount := row.FavCount
 		isFavorited, err := isFavoritedBy(ctx, db, userAccount, row.ID)
 		if err != nil {
@@ -608,6 +602,7 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 
 		songCount := playlist.SongCount
 		favoriteCount := playlist.FavCount
+		// TODO: いらなそう
 		isFavorited, err := isFavoritedBy(ctx, db, userAccount, playlist.ID)
 		if err != nil {
 			return nil, fmt.Errorf("error isFavoritedBy: %w", err)
