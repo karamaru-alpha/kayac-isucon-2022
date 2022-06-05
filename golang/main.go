@@ -1338,17 +1338,19 @@ func apiPlaylistUpdateHandler(c echo.Context) error {
 	}
 
 	// songsを削除→新しいものを入れる
-	if _, err := tx.ExecContext(
-		ctx,
-		"DELETE FROM playlist_song WHERE playlist_id = ?",
-		playlist.ID,
-	); err != nil {
-		tx.Rollback()
-		c.Logger().Errorf(
-			"error Delete playlist_song by id=%d: %s",
-			playlist.ID, err,
-		)
-		return errorResponse(c, 500, "internal server error")
+	if playlist.SongCount > 0 {
+		if _, err := tx.ExecContext(
+			ctx,
+			"DELETE FROM playlist_song WHERE playlist_id = ?",
+			playlist.ID,
+		); err != nil {
+			tx.Rollback()
+			c.Logger().Errorf(
+				"error Delete playlist_song by id=%d: %s",
+				playlist.ID, err,
+			)
+			return errorResponse(c, 500, "internal server error")
+		}
 	}
 
 	for i, songULID := range songULIDs {
