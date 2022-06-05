@@ -519,8 +519,8 @@ func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount s
 	return result, nil
 }
 
-func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
-	var playlists []PlaylistRow
+func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, userAccount string) ([]Playlist, error) {
+	playlists := make([]PlaylistRow, 0, 100)
 	if err := db.SelectContext(
 		ctx,
 		&playlists,
@@ -572,7 +572,7 @@ func getCreatedPlaylistSummariesByUserAccount(ctx context.Context, db connOrTx, 
 	return results, nil
 }
 
-func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
+func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount string) ([]Playlist, error) {
 	var playlistFavorites []PlaylistFavoriteRow
 	if err := db.SelectContext(
 		ctx,
@@ -1093,14 +1093,7 @@ func apiPlaylistsHandler(c echo.Context) error {
 	userAccount := _account.(string)
 
 	ctx := c.Request().Context()
-	conn, err := db.Connx(ctx)
-	if err != nil {
-		c.Logger().Errorf("error db.Conn: %s", err)
-		return errorResponse(c, 500, "internal server error")
-	}
-	defer conn.Close()
-
-	createdPlaylists, err := getCreatedPlaylistSummariesByUserAccount(ctx, conn, userAccount)
+	createdPlaylists, err := getCreatedPlaylistSummariesByUserAccount(ctx, userAccount)
 	if err != nil {
 		c.Logger().Errorf("error getCreatedPlaylistSummariesByUserAccount: %s", err)
 		return errorResponse(c, 500, "internal server error")
@@ -1108,7 +1101,7 @@ func apiPlaylistsHandler(c echo.Context) error {
 	if createdPlaylists == nil {
 		createdPlaylists = []Playlist{}
 	}
-	favoritedPlaylists, err := getFavoritedPlaylistSummariesByUserAccount(ctx, conn, userAccount)
+	favoritedPlaylists, err := getFavoritedPlaylistSummariesByUserAccount(ctx, userAccount)
 	if err != nil {
 		c.Logger().Errorf("error getFavoritedPlaylistSummariesByUserAccount: %s", err)
 		return errorResponse(c, 500, "internal server error")
