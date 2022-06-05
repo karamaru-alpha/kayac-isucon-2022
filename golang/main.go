@@ -80,7 +80,7 @@ func main() {
 	//e.Debug = true
 	e.Logger.SetLevel(log.ERROR)
 
-	e.Use(middleware.Logger())
+	//e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	e.Use(cacheControllPrivate)
 
