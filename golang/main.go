@@ -402,7 +402,7 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 	if err := db.SelectContext(
 		ctx,
 		&allPlaylists,
-		"SELECT a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.account, b.display_name, b.is_ban FROM playlist a LEFT JOIN user b ON a.user_account = b.account WHERE a.is_public = ? ORDER BY a.created_at DESC LIMIT 125",
+		"SELECT a.id, a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.account, b.display_name, b.is_ban FROM playlist a LEFT JOIN user b ON a.user_account = b.account WHERE a.is_public = ? ORDER BY a.created_at DESC LIMIT 125",
 		true,
 	); err != nil {
 		return nil, fmt.Errorf(
