@@ -372,7 +372,7 @@ func getSongsCountByPlaylistID(ctx context.Context, db connOrTx, playlistID int)
 	if err := db.GetContext(
 		ctx,
 		&count,
-		"SELECT COUNT(*) AS cnt FROM playlist_song where playlist_id = ?",
+		"SELECT song_count AS cnt FROM playlist where id = ?",
 		playlistID,
 	); err != nil {
 		return 0, fmt.Errorf(
@@ -1254,8 +1254,8 @@ func apiPlaylistAddHandler(c echo.Context) error {
 
 	if _, err := conn.ExecContext(
 		ctx,
-		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `fav_count`,`created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		playlistULID.String(), name, userAccount, false, 0, createTimestamp, createTimestamp, // 作成時は非公開
+		"INSERT INTO playlist (`ulid`, `name`, `user_account`, `is_public`, `fav_count`,`song_count`,`created_at`, `updated_at`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		playlistULID.String(), name, userAccount, false, 0, 0, createTimestamp, createTimestamp, // 作成時は非公開
 	); err != nil {
 		c.Logger().Errorf(
 			"error Insert playlist by ulid=%s, name=%s, user_account=%s, is_public=%t, created_at=%s, updated_at=%s: %s",
@@ -1364,8 +1364,8 @@ func apiPlaylistUpdateHandler(c echo.Context) error {
 	// name, is_publicの更新
 	if _, err := tx.ExecContext(
 		ctx,
-		"UPDATE playlist SET name = ?, is_public = ?, `updated_at` = ? WHERE `ulid` = ?",
-		name, isPublic, updatedTimestamp, playlist.ULID,
+		"UPDATE playlist SET name = ?, is_public = ?, `updated_at` = ?, `song_count` = ? WHERE `ulid` = ?",
+		name, isPublic, updatedTimestamp, len(songULIDs), playlist.ULID,
 	); err != nil {
 		tx.Rollback()
 		c.Logger().Errorf(
