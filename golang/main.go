@@ -340,8 +340,8 @@ func isFavoritedBy(ctx context.Context, db connOrTx, userAccount string, playlis
 	if err := db.GetContext(
 		ctx,
 		&count,
-		"SELECT COUNT(*) AS cnt FROM playlist_favorite where favorite_user_account = ? AND playlist_id = ?",
-		userAccount, playlistID,
+		"SELECT COUNT(*) AS cnt FROM playlist_favorite where playlist_id = ? AND favorite_user_account = ? LIMIT 1",
+		playlistID, userAccount,
 	); err != nil {
 		return false, fmt.Errorf(
 			"error Get count of playlist_favorite by favorite_user_account=%s, playlist_id=%d: %w",
