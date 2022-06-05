@@ -372,7 +372,7 @@ func getSongsCountByPlaylistID(ctx context.Context, db connOrTx, playlistID int)
 	if err := db.GetContext(
 		ctx,
 		&count,
-		"SELECT COUNT(*) AS cnt FROM playlist_song where playlist_id = ?",
+		"SELECT song_count AS cnt FROM playlist where id = ?",
 		playlistID,
 	); err != nil {
 		return 0, fmt.Errorf(
