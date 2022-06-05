@@ -575,12 +575,13 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 		CreatedAt time.Time `db:"created_at"`
 		UpdatedAt time.Time `db:"updated_at"`
 
+		UserAccount     string `db:"account"`
 		UserDisplayName string `db:"display_name"`
 	}, 0, 100)
 	if err := db.SelectContext(
 		ctx,
 		&playlistFavorites,
-		"SELECT c.ulid, c.name, c.fav_count, c.song_count, c.created_at, c.updated_at, b.display_name FROM playlist_favorite a LEFT JOIN user b ON a.favorite_user_account = b.account LEFT JOIN playlist c ON a.playlist_id = c.id WHERE a.favorite_user_account = ? AND b.is_ban = 0 AND c.is_public = 1 ORDER BY a.id DESC LIMIT 100",
+		"SELECT b.ulid, b.name, b.fav_count, b.song_count, b.created_at, b.updated_at, c.account, c.display_name FROM playlist_favorite a LEFT JOIN playlist b ON a.playlist_id = b.id LEFT JOIN user c ON b.user_account = c.account WHERE a.favorite_user_account = ? AND b.is_public = 1 AND c.is_ban = 0 ORDER BY a.id DESC LIMIT 100",
 		userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
@@ -597,7 +598,7 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 			ULID:            fav.ULID,
 			Name:            fav.Name,
 			UserDisplayName: fav.UserDisplayName,
-			UserAccount:     userAccount,
+			UserAccount:     fav.UserAccount,
 			SongCount:       songCount,
 			FavoriteCount:   favoriteCount,
 			IsFavorited:     true,
