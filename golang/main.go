@@ -58,7 +58,18 @@ func connectDB() (*sqlx.DB, error) {
 	config.InterpolateParams = true
 
 	dsn := config.FormatDSN()
-	return sqlx.Open("mysql", dsn)
+	db, err := sqlx.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		err := db.Ping()
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second * 1)
+	}
+	return db, err
 }
 
 type renderer struct {
