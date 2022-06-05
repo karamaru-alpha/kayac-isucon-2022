@@ -1397,7 +1397,7 @@ func apiPlaylistUpdateHandler(c echo.Context) error {
 			placeHolders.WriteString(",(?, ?, ?)")
 		}
 	}
-	_, err = db.Exec("INSERT INTO playlist_song (`playlist_id`, `sort_order`, `song_id`) VALUES"+placeHolders.String(), args...)
+	_, err = tx.Exec("INSERT INTO playlist_song (`playlist_id`, `sort_order`, `song_id`) VALUES"+placeHolders.String(), args...)
 	if err != nil {
 		tx.Rollback()
 		c.Logger().Errorf("error insertPlaylistSong: %s", err)
