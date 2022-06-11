@@ -1700,6 +1700,10 @@ func apiAdminUserBanHandler(c echo.Context) error {
 		c.Logger().Errorf("error Update user by is_ban=%t, account=%s: %s", isBan, userAccount, err)
 		return errorResponse(c, 500, "internal server error")
 	}
+	if v, ok := userMapByAccount.Get(userAccount); ok {
+		v.IsBan = isBan
+		userMapByAccount.Set(v)
+	}
 	updatedUser, err := getUserByAccount(ctx, conn, userAccount)
 	if err != nil {
 		c.Logger().Errorf("error getUserByAccount: %s", err)
