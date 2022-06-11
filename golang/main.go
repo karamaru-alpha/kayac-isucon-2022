@@ -453,10 +453,7 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 		CreatedAt time.Time `db:"created_at"`
 		UpdatedAt time.Time `db:"updated_at"`
 
-		// user
-		UserAccount     string `db:"account"`
-		UserDisplayName string `db:"display_name"`
-		UserIsBan       bool   `db:"is_ban"`
+		UserAccount string `db:"user_account"`
 
 		// fav
 		IsFavorited bool `db:"is_favorited"`
@@ -464,7 +461,7 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 	if err := db.SelectContext(
 		ctx,
 		&allPlaylists,
-		"SELECT a.id, a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.account, b.display_name, b.is_ban, c.id IS NOT NULL AS is_favorited FROM playlist a LEFT JOIN user b ON a.user_account = b.account LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = ? ORDER BY a.created_at DESC LIMIT 125",
+		"SELECT a.id, a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, a.user_account, c.id IS NOT NULL AS is_favorited FROM playlist a LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = ? ORDER BY a.created_at DESC LIMIT 125",
 		userAccount, true,
 	); err != nil {
 		return nil, fmt.Errorf(
@@ -478,14 +475,15 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 
 	playlists := make([]Playlist, 0, len(allPlaylists))
 	for _, playlist := range allPlaylists {
-		if playlist.UserAccount == "" || playlist.UserIsBan {
+		user, ok := userMapByAccount.Get(playlist.UserAccount)
+		if !ok || user.IsBan {
 			continue
 		}
 
 		playlists = append(playlists, Playlist{
 			ULID:            playlist.ULID,
 			Name:            playlist.Name,
-			UserDisplayName: playlist.UserDisplayName,
+			UserDisplayName: user.DisplayName,
 			UserAccount:     playlist.UserAccount,
 			SongCount:       playlist.SongCount,
 			FavoriteCount:   playlist.FavCount,
@@ -511,16 +509,14 @@ func getPopularPlaylistSummaries(ctx context.Context, userAccount string) ([]Pla
 		CreatedAt time.Time `db:"created_at"`
 		UpdatedAt time.Time `db:"updated_at"`
 
-		UserAccount     string `db:"account"`
-		UserDisplayName string `db:"display_name"`
-		UserIsBan       bool   `db:"is_ban"`
+		UserAccount string `db:"user_account"`
 
 		IsFavorited bool `db:"is_favorited"`
 	}, 0, 125)
 	if err := db.SelectContext(
 		ctx,
 		&playlists,
-		`SELECT a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, b.account, b.display_name, b.is_ban, c.id IS NOT NULL AS is_favorited FROM playlist a JOIN user b ON a.user_account = b.account LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = 1 ORDER BY a.fav_count DESC LIMIT 125`,
+		`SELECT a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, a.user_account, c.id IS NOT NULL AS is_favorited FROM playlist a LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = 1 ORDER BY a.fav_count DESC LIMIT 125`,
 		userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
@@ -534,13 +530,14 @@ func getPopularPlaylistSummaries(ctx context.Context, userAccount string) ([]Pla
 
 	result := make([]Playlist, 0, len(playlists))
 	for _, playlist := range playlists {
-		if playlist.UserIsBan {
+		user, ok := userMapByAccount.Get(playlist.UserAccount)
+		if !ok || user.IsBan {
 			continue
 		}
 		result = append(result, Playlist{
 			ULID:            playlist.ULID,
 			Name:            playlist.Name,
-			UserDisplayName: playlist.UserDisplayName,
+			UserDisplayName: user.DisplayName,
 			UserAccount:     playlist.UserAccount,
 			SongCount:       playlist.SongCount,
 			FavoriteCount:   playlist.FavCount,
@@ -623,13 +620,12 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 		CreatedAt time.Time `db:"created_at"`
 		UpdatedAt time.Time `db:"updated_at"`
 
-		UserAccount     string `db:"account"`
-		UserDisplayName string `db:"display_name"`
+		UserAccount string `db:"user_account"`
 	}, 0, 100)
 	if err := db.SelectContext(
 		ctx,
 		&playlistFavorites,
-		"SELECT b.ulid, b.name, b.fav_count, b.song_count, b.created_at, b.updated_at, c.account, c.display_name FROM playlist_favorite a LEFT JOIN playlist b ON a.playlist_id = b.id LEFT JOIN user c ON b.user_account = c.account WHERE a.favorite_user_account = ? AND b.is_public = 1 AND c.is_ban = 0 ORDER BY a.id DESC LIMIT 100",
+		"SELECT b.ulid, b.name, b.fav_count, b.song_count, b.created_at, b.updated_at, b.user_account FROM playlist_favorite a LEFT JOIN playlist b ON a.playlist_id = b.id WHERE a.favorite_user_account = ? AND b.is_public = 1 ORDER BY a.id DESC LIMIT 125",
 		userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
@@ -640,12 +636,16 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 
 	playlists := make([]Playlist, 0, 100)
 	for _, fav := range playlistFavorites {
+		user, ok := userMapByAccount.Get(fav.UserAccount)
+		if !ok || user.IsBan {
+			continue
+		}
 		songCount := fav.SongCount
 		favoriteCount := fav.FavCount
 		playlists = append(playlists, Playlist{
 			ULID:            fav.ULID,
 			Name:            fav.Name,
-			UserDisplayName: fav.UserDisplayName,
+			UserDisplayName: user.DisplayName,
 			UserAccount:     fav.UserAccount,
 			SongCount:       songCount,
 			FavoriteCount:   favoriteCount,
