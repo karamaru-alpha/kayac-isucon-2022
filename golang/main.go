@@ -620,13 +620,12 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 		CreatedAt time.Time `db:"created_at"`
 		UpdatedAt time.Time `db:"updated_at"`
 
-		UserAccount     string `db:"account"`
-		UserDisplayName string `db:"display_name"`
+		UserAccount string `db:"user_account"`
 	}, 0, 100)
 	if err := db.SelectContext(
 		ctx,
 		&playlistFavorites,
-		"SELECT b.ulid, b.name, b.fav_count, b.song_count, b.created_at, b.updated_at, c.account, c.display_name FROM playlist_favorite a LEFT JOIN playlist b ON a.playlist_id = b.id LEFT JOIN user c ON b.user_account = c.account WHERE a.favorite_user_account = ? AND b.is_public = 1 AND c.is_ban = 0 ORDER BY a.id DESC LIMIT 100",
+		"SELECT b.ulid, b.name, b.fav_count, b.song_count, b.created_at, b.updated_at, b.user_account FROM playlist_favorite a LEFT JOIN playlist b ON a.playlist_id = b.id WHERE a.favorite_user_account = ? AND b.is_public = 1 ORDER BY a.id DESC LIMIT 125",
 		userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
@@ -637,12 +636,16 @@ func getFavoritedPlaylistSummariesByUserAccount(ctx context.Context, userAccount
 
 	playlists := make([]Playlist, 0, 100)
 	for _, fav := range playlistFavorites {
+		user, ok := userMapByAccount.Get(fav.UserAccount)
+		if !ok || user.IsBan {
+			continue
+		}
 		songCount := fav.SongCount
 		favoriteCount := fav.FavCount
 		playlists = append(playlists, Playlist{
 			ULID:            fav.ULID,
 			Name:            fav.Name,
-			UserDisplayName: fav.UserDisplayName,
+			UserDisplayName: user.DisplayName,
 			UserAccount:     fav.UserAccount,
 			SongCount:       songCount,
 			FavoriteCount:   favoriteCount,
