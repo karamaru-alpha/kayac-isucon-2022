@@ -11,6 +11,8 @@ MYSQL_LOG:=mysql/logs/slow-query.log
 NGINX_LOG:=nginx/logs/access.log
 GO_LOG:=/var/log/go.log
 
+BRANCH:=main
+
 .PHONY: setup
 setup:
 	curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
@@ -47,7 +49,7 @@ before:
 	cd $(APP_PATH)
 	git checkout .
 	git clean -df .
-	git pull origin main
+	git pull origin $(BRANCH)
 	sudo rm -f $(NGINX_LOG)
 	sudo rm -f $(MYSQL_LOG)
 	docker-compose down
