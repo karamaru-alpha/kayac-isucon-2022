@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -39,9 +40,32 @@ var (
 	entropy = ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
 )
 
-var songMapByID = make(map[int]*SongRow, 0)
-var songMapByULID = make(map[string]*SongRow, 0)
-var artistMapByID = make(map[int]*ArtistRow, 0)
+var songMapByID map[int]*SongRow
+var songMapByULID map[string]*SongRow
+var artistMapByID map[int]*ArtistRow
+
+type userMapByAccountT struct {
+	M sync.RWMutex
+	V map[string]*UserRow
+}
+
+var userMapByAccount userMapByAccountT
+
+func (o *userMapByAccountT) Get(k string) (*UserRow, bool) {
+	o.M.RLock()
+	v, ok := o.V[k]
+	o.M.RUnlock()
+	return v, ok
+}
+
+func (o *userMapByAccountT) Set(v *UserRow) {
+	if v == nil {
+		return
+	}
+	o.M.Lock()
+	o.V[v.Account] = v
+	o.M.Unlock()
+}
 
 func getEnv(key string, defaultValue string) string {
 	val := os.Getenv(key)
@@ -720,6 +744,10 @@ func getPlaylistFavoritesByPlaylistIDAndUserAccount(ctx context.Context, db conn
 }
 
 func getUserByAccount(ctx context.Context, db connOrTx, account string) (*UserRow, error) {
+	user, ok := userMapByAccount.Get(account)
+	if ok {
+		return user, nil
+	}
 	var result UserRow
 	if err := db.GetContext(
 		ctx,
@@ -1771,6 +1799,18 @@ func initializeHandler(c echo.Context) error {
 	artistMapByID = make(map[int]*ArtistRow, 0)
 	for _, artist := range artists {
 		artistMapByID[artist.ID] = artist
+	}
+
+	users := make([]*UserRow, 0)
+	if err := conn.SelectContext(ctx, &users, "SELECT * FROM user"); err != nil {
+		c.Logger().Errorf("error: initialize %s", err)
+		return errorResponse(c, 500, "internal server error")
+	}
+	userMapByAccount = userMapByAccountT{
+		V: make(map[string]*UserRow, 0),
+	}
+	for _, user := range users {
+		userMapByAccount.V[user.Account] = user
 	}
 
 	body := BasicResponse{
