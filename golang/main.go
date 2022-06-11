@@ -238,17 +238,21 @@ func validateSession(c echo.Context) (*UserRow, bool, error) {
 	}
 	account := _account.(string)
 	var user UserRow
-	err = db.GetContext(
-		c.Request().Context(),
-		&user,
-		"SELECT * FROM user where `account` = ?",
-		account,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
+	if v, ok := userMapByAccount.Get(account); ok {
+		user = *v
+	} else {
+		err := db.GetContext(
+			c.Request().Context(),
+			&user,
+			"SELECT * FROM user where `account` = ?",
+			account,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, false, nil
+			}
+			return nil, false, fmt.Errorf("error Get UserRow from db: %w", err)
 		}
-		return nil, false, fmt.Errorf("error Get UserRow from db: %w", err)
 	}
 	if user.IsBan {
 		return nil, false, nil
@@ -959,6 +963,8 @@ func apiLoginHandler(c echo.Context) error {
 		c.Logger().Errorf("error Update user by last_logined_at=%s, account=%s: %s", now, user.Account, err)
 		return errorResponse(c, 500, "failed to login (server error)")
 	}
+	user.LastLoginedAt = now
+	userMapByAccount.Set(user)
 
 	sess, err := newSession(c.Request())
 	if err != nil {
