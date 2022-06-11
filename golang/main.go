@@ -868,7 +868,7 @@ func apiSignupHandler(c echo.Context) error {
 		Account:       userAccount,
 		PasswordHash:  passwordHash,
 		DisplayName:   displayName,
-		IsBan:         false,
+		IsBan:         isBan,
 		CreatedAt:     signupTimestamp,
 		LastLoginedAt: signupTimestamp,
 	})
