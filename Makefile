@@ -45,8 +45,8 @@ setup:
 .PHONY: before
 before:
 	cd $(APP_PATH)
-	git checkout .
-	git clean -df .
+	git checkout . && git clean -df .
+	echo "BRANCH:$(git rev-parse --abbrev-ref HEAD)"
 	git rev-parse --abbrev-ref HEAD | xargs git pull origin
 	sudo rm -f $(NGINX_LOG)
 	sudo rm -f $(MYSQL_LOG)
