@@ -531,7 +531,7 @@ func getPopularPlaylistSummaries(ctx context.Context, userAccount string) ([]Pla
 	result := make([]Playlist, 0, len(playlists))
 	for _, playlist := range playlists {
 		user, ok := userMapByAccount.Get(playlist.UserAccount)
-		if !ok && user.IsBan {
+		if !ok || user.IsBan {
 			continue
 		}
 		result = append(result, Playlist{
