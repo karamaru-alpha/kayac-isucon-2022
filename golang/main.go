@@ -466,7 +466,7 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 	return playlists, nil
 }
 
-func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
+func getPopularPlaylistSummaries(ctx context.Context, userAccount string) ([]Playlist, error) {
 	playlists := make([]*struct {
 		ULID      string    `db:"ulid"`
 		Name      string    `db:"name"`
@@ -1017,6 +1017,7 @@ func apiPopularPlaylistsHandler(c echo.Context) error {
 		c.Logger().Errorf("error getSession:  %s", err)
 		return errorResponse(c, 500, "internal server error")
 	}
+	
 	userAccount := anonUserAccount
 	_account, ok := sess.Values["user_account"]
 	if ok {
@@ -1024,26 +1025,26 @@ func apiPopularPlaylistsHandler(c echo.Context) error {
 	}
 
 	ctx := c.Request().Context()
-	conn, err := db.Connx(ctx)
-	if err != nil {
-		c.Logger().Errorf("error db.Conn: %s", err)
-		return errorResponse(c, 500, "internal server error")
-	}
-	defer conn.Close()
+	//conn, err := db.Connx(ctx)
+	//if err != nil {
+	//	c.Logger().Errorf("error db.Conn: %s", err)
+	//	return errorResponse(c, 500, "internal server error")
+	//}
+	//defer conn.Close()
 
 	// トランザクションを使わないとfav数の順番が狂うことがある
-	tx, err := conn.BeginTxx(ctx, nil)
+	//tx, err := conn.BeginTxx(ctx, nil)
 	if err != nil {
 		c.Logger().Errorf("error conn.BeginTxx: %s", err)
 		return errorResponse(c, 500, "internal server error")
 	}
-	playlists, err := getPopularPlaylistSummaries(ctx, tx, userAccount)
+	playlists, err := getPopularPlaylistSummaries(ctx, userAccount)
 	if err != nil {
-		tx.Rollback()
+		//tx.Rollback()
 		c.Logger().Errorf("error getPopularPlaylistSummaries: %s", err)
 		return errorResponse(c, 500, "internal server error")
 	}
-	tx.Commit()
+	//tx.Commit()
 
 	body := GetRecentPlaylistsResponse{
 		BasicResponse: BasicResponse{
