@@ -864,6 +864,14 @@ func apiSignupHandler(c echo.Context) error {
 			userAccount, displayName, passwordHash, isBan, signupTimestamp, signupTimestamp, err,
 		)
 	}
+	userMapByAccount.Set(&UserRow{
+		Account:       userAccount,
+		PasswordHash:  passwordHash,
+		DisplayName:   displayName,
+		IsBan:         false,
+		CreatedAt:     signupTimestamp,
+		LastLoginedAt: signupTimestamp,
+	})
 
 	sess, err := newSession(c.Request())
 	if err != nil {
