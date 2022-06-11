@@ -45,9 +45,9 @@ setup:
 .PHONY: before
 before:
 	cd $(APP_PATH)
-	git checkout .
-	git clean -df .
-	git pull origin main
+	git checkout . && git clean -df .
+	git rev-parse --abbrev-ref HEAD | xargs echo "BRANCH:"
+	git rev-parse --abbrev-ref HEAD | xargs git pull origin
 	sudo rm -f $(NGINX_LOG)
 	sudo rm -f $(MYSQL_LOG)
 	docker-compose down
