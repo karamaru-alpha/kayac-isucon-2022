@@ -516,7 +516,7 @@ func getPopularPlaylistSummaries(ctx context.Context, userAccount string) ([]Pla
 	if err := db.SelectContext(
 		ctx,
 		&playlists,
-		`SELECT a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, c.id IS NOT NULL AS is_favorited FROM playlist a LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = 1 ORDER BY a.fav_count DESC LIMIT 125`,
+		`SELECT a.ulid, a.name, a.is_public, a.fav_count, a.song_count, a.created_at, a.updated_at, a.user_account, c.id IS NOT NULL AS is_favorited FROM playlist a LEFT JOIN playlist_favorite c ON a.id = c.playlist_id AND c.favorite_user_account = ? WHERE a.is_public = 1 ORDER BY a.fav_count DESC LIMIT 125`,
 		userAccount,
 	); err != nil {
 		return nil, fmt.Errorf(
