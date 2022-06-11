@@ -138,6 +138,13 @@ func main() {
 		e.Logger.Fatalf("failed to connect db: %v", err)
 		return
 	}
+	for {
+		err := db.Ping()
+		if err == nil {
+			break
+		}
+		time.Sleep(time.Second * 1)
+	}
 	MAX_CONN := 20
 	db.SetMaxOpenConns(MAX_CONN)
 	db.SetMaxIdleConns(MAX_CONN * 2)
@@ -1017,7 +1024,7 @@ func apiPopularPlaylistsHandler(c echo.Context) error {
 		c.Logger().Errorf("error getSession:  %s", err)
 		return errorResponse(c, 500, "internal server error")
 	}
-	
+
 	userAccount := anonUserAccount
 	_account, ok := sess.Values["user_account"]
 	if ok {
