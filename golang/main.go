@@ -23,6 +23,7 @@ import (
 	"github.com/oklog/ulid/v2"
 	"github.com/srinathgs/mysqlstore"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -1088,17 +1089,27 @@ func apiPlaylistsHandler(c echo.Context) error {
 	userAccount := _account.(string)
 
 	ctx := c.Request().Context()
-	createdPlaylists, err := getCreatedPlaylistSummariesByUserAccount(ctx, userAccount)
-	if err != nil {
-		c.Logger().Errorf("error getCreatedPlaylistSummariesByUserAccount: %s", err)
-		return errorResponse(c, 500, "internal server error")
-	}
-	if createdPlaylists == nil {
-		createdPlaylists = []Playlist{}
-	}
-	favoritedPlaylists, err := getFavoritedPlaylistSummariesByUserAccount(ctx, userAccount)
-	if err != nil {
-		c.Logger().Errorf("error getFavoritedPlaylistSummariesByUserAccount: %s", err)
+
+	createdPlaylists := make([]Playlist, 0)
+	favoritedPlaylists := make([]Playlist, 0)
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error {
+		createdPlaylists, err = getCreatedPlaylistSummariesByUserAccount(ctx, userAccount)
+		if err != nil {
+			c.Logger().Errorf("error getCreatedPlaylistSummariesByUserAccount: %s", err)
+			return err
+		}
+		return nil
+	})
+	eg.Go(func() error {
+		favoritedPlaylists, err = getFavoritedPlaylistSummariesByUserAccount(ctx, userAccount)
+		if err != nil {
+			c.Logger().Errorf("error getFavoritedPlaylistSummariesByUserAccount: %s", err)
+			return err
+		}
+		return nil
+	})
+	if err := eg.Wait(); err != nil {
 		return errorResponse(c, 500, "internal server error")
 	}
 
