@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -39,9 +40,32 @@ var (
 	entropy = ulid.Monotonic(rand.New(rand.NewSource(time.Now().UnixNano())), 0)
 )
 
-var songMapByID = make(map[int]*SongRow, 0)
-var songMapByULID = make(map[string]*SongRow, 0)
-var artistMapByID = make(map[int]*ArtistRow, 0)
+var songMapByID map[int]*SongRow
+var songMapByULID map[string]*SongRow
+var artistMapByID map[int]*ArtistRow
+
+type userMapByAccountT struct {
+	M sync.RWMutex
+	V map[string]*UserRow
+}
+
+var userMapByAccount userMapByAccountT
+
+func (o *userMapByAccountT) Get(k string) (*UserRow, bool) {
+	o.M.RLock()
+	v, ok := o.V[k]
+	o.M.RUnlock()
+	return v, ok
+}
+
+func (o *userMapByAccountT) Set(v *UserRow) {
+	if v == nil {
+		return
+	}
+	o.M.Lock()
+	o.V[v.Account] = v
+	o.M.Unlock()
+}
 
 func getEnv(key string, defaultValue string) string {
 	val := os.Getenv(key)
@@ -214,17 +238,21 @@ func validateSession(c echo.Context) (*UserRow, bool, error) {
 	}
 	account := _account.(string)
 	var user UserRow
-	err = db.GetContext(
-		c.Request().Context(),
-		&user,
-		"SELECT * FROM user where `account` = ?",
-		account,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, false, nil
+	if v, ok := userMapByAccount.Get(account); ok {
+		user = *v
+	} else {
+		err := db.GetContext(
+			c.Request().Context(),
+			&user,
+			"SELECT * FROM user where `account` = ?",
+			account,
+		)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, false, nil
+			}
+			return nil, false, fmt.Errorf("error Get UserRow from db: %w", err)
 		}
-		return nil, false, fmt.Errorf("error Get UserRow from db: %w", err)
 	}
 	if user.IsBan {
 		return nil, false, nil
@@ -720,6 +748,10 @@ func getPlaylistFavoritesByPlaylistIDAndUserAccount(ctx context.Context, db conn
 }
 
 func getUserByAccount(ctx context.Context, db connOrTx, account string) (*UserRow, error) {
+	user, ok := userMapByAccount.Get(account)
+	if ok {
+		return user, nil
+	}
 	var result UserRow
 	if err := db.GetContext(
 		ctx,
@@ -836,6 +868,14 @@ func apiSignupHandler(c echo.Context) error {
 			userAccount, displayName, passwordHash, isBan, signupTimestamp, signupTimestamp, err,
 		)
 	}
+	userMapByAccount.Set(&UserRow{
+		Account:       userAccount,
+		PasswordHash:  passwordHash,
+		DisplayName:   displayName,
+		IsBan:         isBan,
+		CreatedAt:     signupTimestamp,
+		LastLoginedAt: signupTimestamp,
+	})
 
 	sess, err := newSession(c.Request())
 	if err != nil {
@@ -923,6 +963,8 @@ func apiLoginHandler(c echo.Context) error {
 		c.Logger().Errorf("error Update user by last_logined_at=%s, account=%s: %s", now, user.Account, err)
 		return errorResponse(c, 500, "failed to login (server error)")
 	}
+	user.LastLoginedAt = now
+	userMapByAccount.Set(user)
 
 	sess, err := newSession(c.Request())
 	if err != nil {
@@ -1664,6 +1706,10 @@ func apiAdminUserBanHandler(c echo.Context) error {
 		c.Logger().Errorf("error Update user by is_ban=%t, account=%s: %s", isBan, userAccount, err)
 		return errorResponse(c, 500, "internal server error")
 	}
+	if v, ok := userMapByAccount.Get(userAccount); ok {
+		v.IsBan = isBan
+		userMapByAccount.Set(v)
+	}
 	updatedUser, err := getUserByAccount(ctx, conn, userAccount)
 	if err != nil {
 		c.Logger().Errorf("error getUserByAccount: %s", err)
@@ -1771,6 +1817,18 @@ func initializeHandler(c echo.Context) error {
 	artistMapByID = make(map[int]*ArtistRow, 0)
 	for _, artist := range artists {
 		artistMapByID[artist.ID] = artist
+	}
+
+	users := make([]*UserRow, 0)
+	if err := conn.SelectContext(ctx, &users, "SELECT * FROM user"); err != nil {
+		c.Logger().Errorf("error: initialize %s", err)
+		return errorResponse(c, 500, "internal server error")
+	}
+	userMapByAccount = userMapByAccountT{
+		V: make(map[string]*UserRow, 0),
+	}
+	for _, user := range users {
+		userMapByAccount.V[user.Account] = user
 	}
 
 	body := BasicResponse{
