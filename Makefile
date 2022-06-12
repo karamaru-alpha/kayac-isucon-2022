@@ -8,7 +8,8 @@ DB_USER:=isucon
 DB_PASS:=isucon
 DB_NAME:=isucon_listen80
 MYSQL_LOG:=mysql/logs/slow-query.log
-NGINX_LOG:=nginx/logs/access.log
+NGINX_LOG:=/var/log/nginx/access.log
+NGINX_ERR:=/var/log/nginx/error.log
 GO_LOG:=/var/log/go.log
 
 .PHONY: setup
@@ -48,10 +49,14 @@ before:
 	git checkout . && git clean -df .
 	git rev-parse --abbrev-ref HEAD | xargs echo "BRANCH:"
 	git rev-parse --abbrev-ref HEAD | xargs git pull origin
-	sudo rm -f $(NGINX_LOG)
 	sudo rm -f $(MYSQL_LOG)
 	docker-compose down
 	docker-compose up -d --build
+	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
+	sudo cp ./nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
+	sudo rm -f $(NGINX_LOG)
+	sudo rm -f $(NGINX_ERR)
+	sudo systemctl restart nginx
 
 .PHONY: before-db
 before-db:
