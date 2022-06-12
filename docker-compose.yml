@@ -32,6 +32,8 @@ services:
       - gopkg:/usr/local/go/pkg
     init: true
     restart: always
+    ports:
+      - 3000:3000
 
   mysql:
     cpus: 1
