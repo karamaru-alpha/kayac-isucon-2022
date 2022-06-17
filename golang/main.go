@@ -7,10 +7,13 @@ import (
 	"html/template"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"regexp"
 	"sync"
+	"syscall"
 	"time"
 	"unicode/utf8"
 
@@ -181,10 +184,37 @@ func main() {
 		return
 	}
 
-	port := getEnv("SERVER_APP_PORT", "3000")
-	e.Logger.Infof("starting listen80 server on : %s ...", port)
-	serverPort := fmt.Sprintf(":%s", port)
-	e.Logger.Fatal(e.Start(serverPort))
+	// unix domain socket
+
+	listener, err := net.Listen("unix", "/run/webapp.sock")
+	if err != nil {
+		e.Logger.Fatalf("failed to init unix domain socket. err:%v", err)
+		return
+	}
+	defer func() {
+		if err := listener.Close(); err != nil {
+			e.Logger.Fatalf("failed to init unix domain socket close. err:%v", err)
+			return
+		}
+	}()
+
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		if err := listener.Close(); err != nil {
+			e.Logger.Fatalf("failed to init unix domain socket close. err:%v", err)
+			return
+		}
+	}()
+	//e.Listener = listener
+	e.Logger.Info("starting server on unix domain socket...")
+	log.Fatal(http.Serve(listener, e))
+
+	//port := getEnv("SERVER_APP_PORT", "3000")
+	//e.Logger.Infof("starting listen80 server on : %s ...", port)
+	//serverPort := fmt.Sprintf(":%s", port)
+	//e.Logger.Fatal(e.Start(serverPort))
 }
 
 func getSession(r *http.Request) (*sessions.Session, error) {
