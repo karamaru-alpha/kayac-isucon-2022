@@ -207,9 +207,12 @@ func main() {
 			return
 		}
 	}()
-	//e.Listener = listener
+	e.Listener = listener
 	e.Logger.Info("starting server on unix domain socket...")
-	log.Fatal(http.Serve(listener, e))
+	server := new(http.Server)
+	if err := e.StartServer(server); err != nil {
+		log.Fatal(err)
+	}
 
 	//port := getEnv("SERVER_APP_PORT", "3000")
 	//e.Logger.Infof("starting listen80 server on : %s ...", port)
