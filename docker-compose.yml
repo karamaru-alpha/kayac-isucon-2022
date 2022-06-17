@@ -38,12 +38,13 @@ services:
   mysql:
     cpus: 1
     mem_limit: 1g
-    image: arm64v8/mariadb
+    image: mariadb
     # M1 mac(ARM)の場合は aarch64 のimageに変更する
     # image: mysql/mysql-server:8.0.28-aarch64-aarch64
     environment:
       - "MYSQL_ROOT_HOST=%"
       - "MYSQL_ROOT_PASSWORD=root"
+      - "MARIADB_ROOT_PASSWORD=root"
     volumes:
       - ../sql:/docker-entrypoint-initdb.d
       - mysql:/var/lib/mysql
