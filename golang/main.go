@@ -86,6 +86,7 @@ func connectDB() (*sqlx.DB, error) {
 	config.InterpolateParams = true
 
 	dsn := config.FormatDSN()
+	fmt.Println(dsn)
 	return sqlx.Open("mysql", dsn)
 }
 
