@@ -35,23 +35,23 @@ services:
     ports:
       - 3000:3000
 
-  mysql:
-    cpus: 1
-    mem_limit: 1g
-    image: mariadb:latest
-    # M1 mac(ARM)の場合は aarch64 のimageに変更する
-    # image: mysql/mysql-server:8.0.28-aarch64-aarch64
-    environment:
-      - "MYSQL_ROOT_HOST=%"
-      - "MYSQL_ROOT_PASSWORD=root"
-    volumes:
-      - ../sql:/docker-entrypoint-initdb.d
+#  mysql:
+#    cpus: 1
+#    mem_limit: 1g
+#    image: mysql/mysql-server:8.0.28-aarch64
+#    # M1 mac(ARM)の場合は aarch64 のimageに変更する
+#    # image: mysql/mysql-server:8.0.28-aarch64-aarch64
+#    environment:
+#      - "MYSQL_ROOT_HOST=%"
+#      - "MYSQL_ROOT_PASSWORD=root"
+#    volumes:
+#      - ../sql:/docker-entrypoint-initdb.d
 #      - mysql:/var/lib/mysql
-      - ./mysql/my.cnf:/etc/my.cnf
+#      - ./mysql/my.cnf:/etc/my.cnf
 #      - ./mysql/logs:/var/log/mysql
-    ports:
-      - 13306:3306
-    restart: always
+#    ports:
+#      - 13306:3306
+#    restart: always
 
 volumes:
   mysql:
