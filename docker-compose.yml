@@ -20,7 +20,7 @@ services:
     # Go実装の場合は golang/ node実装の場合は node/
     build: golang/
     environment:
-      ISUCON_DB_HOST: mysql
+#      ISUCON_DB_HOST: mysql
       ISUCON_DB_PORT: 3306
       ISUCON_DB_USER: isucon
       ISUCON_DB_PASSWORD: isucon
