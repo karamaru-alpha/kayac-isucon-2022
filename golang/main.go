@@ -168,6 +168,7 @@ func main() {
 		if err == nil {
 			break
 		}
+		e.Logger.Error("failed to connect db: %v", err)
 		time.Sleep(time.Second * 1)
 	}
 	MAX_CONN := 20
