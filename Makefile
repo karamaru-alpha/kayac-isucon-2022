@@ -60,7 +60,7 @@ before:
 	sudo rm -f $(NGINX_ERR)
 	sudo systemctl restart nginx
 	GOOS=linux GOARCH=arm64 go build -o isucon *.go
-	sudo systemctl restart golang
+	(cd golang && sudo systemctl restart golang)
 
 
 .PHONY: before-db
