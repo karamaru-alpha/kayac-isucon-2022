@@ -1797,47 +1797,62 @@ func initializeHandler(c echo.Context) error {
 		return errorResponse(c, 500, "internal server error")
 	}
 
-	songs := make([]*SongRow, 0)
-	if err := conn.SelectContext(
-		ctx,
-		&songs,
-		"SELECT * FROM song",
-	); err != nil {
-		c.Logger().Errorf("error: initialize %s", err)
-		return errorResponse(c, 500, "internal server error")
-	}
-	songMapByID = make(map[int]*SongRow, 0)
-	songMapByULID = make(map[string]*SongRow, 0)
-	for _, song := range songs {
-		songMapByID[song.ID] = song
-		songMapByULID[song.ULID] = song
-	}
+	var eg sync.WaitGroup
+	eg.Add(1)
+	go func() {
+		defer eg.Done()
+		songs := make([]*SongRow, 0)
+		if err := conn.SelectContext(
+			ctx,
+			&songs,
+			"SELECT * FROM song",
+		); err != nil {
+			c.Logger().Errorf("error: initialize %s", err)
+			return
+		}
+		songMapByID = make(map[int]*SongRow, 0)
+		songMapByULID = make(map[string]*SongRow, 0)
+		for _, song := range songs {
+			songMapByID[song.ID] = song
+			songMapByULID[song.ULID] = song
+		}
+	}()
 
-	artists := make([]*ArtistRow, 0)
-	if err := conn.SelectContext(
-		ctx,
-		&artists,
-		"SELECT * FROM artist",
-	); err != nil {
-		c.Logger().Errorf("error: initialize %s", err)
-		return errorResponse(c, 500, "internal server error")
-	}
-	artistMapByID = make(map[int]*ArtistRow, 0)
-	for _, artist := range artists {
-		artistMapByID[artist.ID] = artist
-	}
+	eg.Add(1)
+	go func() {
+		defer eg.Done()
+		artists := make([]*ArtistRow, 0)
+		if err := conn.SelectContext(
+			ctx,
+			&artists,
+			"SELECT * FROM artist",
+		); err != nil {
+			c.Logger().Errorf("error: initialize %s", err)
+			return
+		}
+		artistMapByID = make(map[int]*ArtistRow, 0)
+		for _, artist := range artists {
+			artistMapByID[artist.ID] = artist
+		}
+	}()
 
-	users := make([]*UserRow, 0)
-	if err := conn.SelectContext(ctx, &users, "SELECT * FROM user"); err != nil {
-		c.Logger().Errorf("error: initialize %s", err)
-		return errorResponse(c, 500, "internal server error")
-	}
-	userMapByAccount = userMapByAccountT{
-		V: make(map[string]*UserRow, 0),
-	}
-	for _, user := range users {
-		userMapByAccount.V[user.Account] = user
-	}
+	eg.Add(1)
+	go func() {
+		defer eg.Done()
+		users := make([]*UserRow, 0)
+		if err := conn.SelectContext(ctx, &users, "SELECT * FROM user"); err != nil {
+			c.Logger().Errorf("error: initialize %s", err)
+			return
+		}
+		userMapByAccount = userMapByAccountT{
+			V: make(map[string]*UserRow, 0),
+		}
+		for _, user := range users {
+			userMapByAccount.V[user.Account] = user
+		}
+	}()
+
+	eg.Wait()
 
 	body := BasicResponse{
 		Result: true,
