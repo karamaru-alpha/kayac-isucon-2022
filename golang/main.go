@@ -132,6 +132,15 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(cacheControllPrivate)
 
+	logfile, er := os.OpenFile("/var/log/go.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if er != nil {
+		panic(er)
+	}
+	defer logfile.Close()
+	log.SetOutput(logfile)
+	e.Logger.SetOutput(logfile)
+	log.Print("initialize!!!!")
+
 	e.Renderer = tr
 	e.Static("/assets", publicPath+"/assets")
 	e.GET("/mypage", authRequiredPageHandler)
@@ -162,11 +171,12 @@ func main() {
 		e.Logger.Fatalf("failed to connect db: %v", err)
 		return
 	}
-	for {
+	for i := 0; i > 30; i++ {
 		err := db.Ping()
 		if err == nil {
 			break
 		}
+		e.Logger.Error("failed to connect db: %v", err)
 		time.Sleep(time.Second * 1)
 	}
 	MAX_CONN := 20
@@ -1745,6 +1755,7 @@ func isAdminUser(account string) bool {
 // DBの初期化処理
 // auto generated dump data 20220424_0851 size prod
 func initializeHandler(c echo.Context) error {
+	log.Print("initialize!!")
 	lastCreatedAt := "2022-05-13 09:00:00.000"
 	ctx := c.Request().Context()
 
@@ -1796,7 +1807,7 @@ func initializeHandler(c echo.Context) error {
 		"SELECT * FROM song",
 	); err != nil {
 		c.Logger().Errorf("error: initialize %s", err)
-		return errorResponse(c, 500, "internal server error")
+		return err
 	}
 	songMapByID = make(map[int]*SongRow, 0)
 	songMapByULID = make(map[string]*SongRow, 0)
@@ -1812,7 +1823,7 @@ func initializeHandler(c echo.Context) error {
 		"SELECT * FROM artist",
 	); err != nil {
 		c.Logger().Errorf("error: initialize %s", err)
-		return errorResponse(c, 500, "internal server error")
+		return err
 	}
 	artistMapByID = make(map[int]*ArtistRow, 0)
 	for _, artist := range artists {
@@ -1822,7 +1833,7 @@ func initializeHandler(c echo.Context) error {
 	users := make([]*UserRow, 0)
 	if err := conn.SelectContext(ctx, &users, "SELECT * FROM user"); err != nil {
 		c.Logger().Errorf("error: initialize %s", err)
-		return errorResponse(c, 500, "internal server error")
+		return err
 	}
 	userMapByAccount = userMapByAccountT{
 		V: make(map[string]*UserRow, 0),

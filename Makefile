@@ -7,7 +7,8 @@ DB_PORT:=3306
 DB_USER:=isucon
 DB_PASS:=isucon
 DB_NAME:=isucon_listen80
-MYSQL_LOG:=mysql/logs/slow-query.log
+MYSQL_LOG:=/var/log/mysql/slow-query.log
+MYSQL_ERR:=/var/log/mysql/error.log
 NGINX_LOG:=/var/log/nginx/access.log
 NGINX_ERR:=/var/log/nginx/error.log
 GO_LOG:=/var/log/go.log
@@ -49,14 +50,19 @@ before:
 	git checkout . && git clean -df .
 	git rev-parse --abbrev-ref HEAD | xargs echo "BRANCH:"
 	git rev-parse --abbrev-ref HEAD | xargs git pull origin
+	sudo cp ./mysql/my.cnf /etc/my.cnf
 	sudo rm -f $(MYSQL_LOG)
-	docker-compose down
-	docker-compose up -d --build
+	sudo rm -f $(MYSQL_ERR)
+	sudo systemctl restart mysql
 	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo cp ./nginx/conf.d/default.conf /etc/nginx/conf.d/default.conf
 	sudo rm -f $(NGINX_LOG)
 	sudo rm -f $(NGINX_ERR)
 	sudo systemctl restart nginx
+	(cd golang && GOOS=linux GOARCH=arm64 go build -o isucon *.go)
+	sudo cp /dev/null $(GO_LOG)
+	sudo systemctl restart golang
+
 
 .PHONY: before-db
 before-db:
