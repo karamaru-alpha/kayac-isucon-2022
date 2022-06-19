@@ -134,7 +134,10 @@ func main() {
 
 	logfile, _ := os.OpenFile("/var/log/go.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	defer logfile.Close()
+	log.SetOutput(logfile)
 	e.Logger.SetOutput(logfile)
+
+	log.Println("initialize!!!!")
 
 	e.Renderer = tr
 	e.Static("/assets", publicPath+"/assets")
