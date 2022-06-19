@@ -86,7 +86,6 @@ func connectDB() (*sqlx.DB, error) {
 	config.InterpolateParams = true
 
 	dsn := config.FormatDSN()
-	fmt.Println(dsn)
 	return sqlx.Open("mysql", dsn)
 }
 
@@ -133,6 +132,10 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(cacheControllPrivate)
 
+	logfile, _ := os.OpenFile("/var/log/go.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	defer logfile.Close()
+	e.Logger.SetOutput(logfile)
+
 	e.Renderer = tr
 	e.Static("/assets", publicPath+"/assets")
 	e.GET("/mypage", authRequiredPageHandler)
@@ -163,7 +166,7 @@ func main() {
 		e.Logger.Fatalf("failed to connect db: %v", err)
 		return
 	}
-	for {
+	for i := 0; i > 30; i++ {
 		err := db.Ping()
 		if err == nil {
 			break
