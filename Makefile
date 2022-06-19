@@ -96,4 +96,4 @@ sql:
 
 .PHONY: bench
 bench:
-	(cd ../bench && ./bench)
+	(cd ../bench && ./bench -initialize-request-timeout 1m)
