@@ -60,7 +60,7 @@ before:
 	sudo rm -f $(NGINX_ERR)
 	sudo systemctl restart nginx
 	(cd golang && GOOS=linux GOARCH=arm64 go build -o isucon *.go)
-	sudo rm -f $(GO_LOG)
+	sudo cp /dev/nul $(GO_LOG)
 	sudo systemctl restart golang
 
 
