@@ -59,7 +59,8 @@ before:
 	sudo rm -f $(NGINX_LOG)
 	sudo rm -f $(NGINX_ERR)
 	sudo systemctl restart nginx
-	docker-compose up -d --build
+	GOOS=linux GOARCH=arm64 go build -o isucon *.go
+	sudo systemctl restart golang
 
 
 .PHONY: before-db
