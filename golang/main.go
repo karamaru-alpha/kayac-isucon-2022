@@ -1753,6 +1753,7 @@ func isAdminUser(account string) bool {
 // DBの初期化処理
 // auto generated dump data 20220424_0851 size prod
 func initializeHandler(c echo.Context) error {
+	log.Print("initialize!!")
 	lastCreatedAt := "2022-05-13 09:00:00.000"
 	ctx := c.Request().Context()
 
