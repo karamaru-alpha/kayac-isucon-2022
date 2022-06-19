@@ -1800,27 +1800,23 @@ func initializeHandler(c echo.Context) error {
 		return errorResponse(c, 500, "internal server error")
 	}
 
-	var eg sync.WaitGroup
-	eg.Add(1)
-	go func() {
-		defer eg.Done()
-		songs := make([]*SongRow, 0)
-		if err := conn.SelectContext(
-			ctx,
-			&songs,
-			"SELECT * FROM song",
-		); err != nil {
-			c.Logger().Errorf("error: initialize %s", err)
-			return
-		}
-		songMapByID = make(map[int]*SongRow, 0)
-		songMapByULID = make(map[string]*SongRow, 0)
-		for _, song := range songs {
-			songMapByID[song.ID] = song
-			songMapByULID[song.ULID] = song
-		}
-	}()
+	songs := make([]*SongRow, 0)
+	if err := conn.SelectContext(
+		ctx,
+		&songs,
+		"SELECT * FROM song",
+	); err != nil {
+		c.Logger().Errorf("error: initialize %s", err)
+		return err
+	}
+	songMapByID = make(map[int]*SongRow, 0)
+	songMapByULID = make(map[string]*SongRow, 0)
+	for _, song := range songs {
+		songMapByID[song.ID] = song
+		songMapByULID[song.ULID] = song
+	}
 
+	var eg sync.WaitGroup
 	eg.Add(1)
 	go func() {
 		defer eg.Done()
