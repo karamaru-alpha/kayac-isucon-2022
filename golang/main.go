@@ -137,7 +137,7 @@ func main() {
 	log.SetOutput(logfile)
 	e.Logger.SetOutput(logfile)
 
-	log.Println("initialize!!!!")
+	log.Print("initialize!!!!")
 
 	e.Renderer = tr
 	e.Static("/assets", publicPath+"/assets")
